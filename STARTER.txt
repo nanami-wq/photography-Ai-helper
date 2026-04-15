@@ -1,0 +1,12 @@
+从 Hai-Service 抽出的地基骨架（Gin + Viper + JWT + GORM/MySQL + 注册/登录/me）。
+
+使用步骤：
+1. 复制 config/app.yaml.example 为 config/app.yaml，填写 mysql、jwt.secret。
+2. 创建空数据库后执行：go run .  （启动时会 AutoMigrate users 表）
+3. 修改 go.mod 第一行 module 为你的模块名，并全局替换 import 路径 go-service-starter -> 新模块名。
+
+接口：
+- GET  /ping
+- POST /api/auth/register   JSON: username, email, password
+- POST /api/auth/login      JSON: account（用户名或邮箱）, password
+- GET  /api/auth/me         Header: Authorization: Bearer <token>

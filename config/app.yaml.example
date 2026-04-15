@@ -1,0 +1,16 @@
+# 复制为 config/app.yaml 后修改
+app:
+  name: "go-service-starter"
+  port: "8080"
+  url: "http://localhost:8080"
+
+jwt:
+  secret: "change-me-to-a-long-random-string"
+  access_hours: 24
+
+mysql:
+  host: "localhost"
+  port: "3306"
+  username: "root"
+  password: "yourpassword"
+  database: "starter"
