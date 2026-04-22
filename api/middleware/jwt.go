@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -40,9 +41,11 @@ type Claims struct {
 
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
-		if token == "" {
-			token = c.Query("token")
+		var token string
+		auth := strings.TrimSpace(c.GetHeader("Authorization"))
+		switch {
+		case auth == "":
+			token = strings.TrimSpace(c.Query("token"))
 			if token == "" {
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"code": http.StatusUnauthorized,
@@ -51,15 +54,18 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
-		} else if len(token) > 7 && token[:7] == "Bearer " {
-			token = token[7:]
-		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"code": http.StatusUnauthorized,
-				"msg":  "无效的token形式",
-			})
-			c.Abort()
-			return
+		case len(auth) >= 7 && strings.EqualFold(auth[:7], "bearer "):
+			token = strings.TrimSpace(auth[7:])
+			if token == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"code": http.StatusUnauthorized,
+					"msg":  "Authorization: Bearer 后未提供有效 token",
+				})
+				c.Abort()
+				return
+			}
+		default:
+			token = auth
 		}
 
 		claims, err := ParseToken(token)

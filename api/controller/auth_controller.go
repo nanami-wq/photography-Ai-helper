@@ -44,6 +44,10 @@ type registerBody struct {
 }
 
 func (a *AuthController) Register(c *gin.Context) {
+	if a.uc == nil {
+		libx.Err(c, http.StatusServiceUnavailable, "未启用 MySQL（config.mysql.skip=true 时无法使用认证）", nil)
+		return
+	}
 	var body registerBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		libx.Err(c, http.StatusBadRequest, "参数无效", err)

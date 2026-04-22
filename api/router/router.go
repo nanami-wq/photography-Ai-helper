@@ -16,6 +16,9 @@ func GenerateRouter(r *gin.Engine) {
 	auth := controller.NewAuthController()
 	auth.RegisterPublic(r.Group("/api"))
 
+	gemini := controller.NewGeminiController()
+	gemini.RegisterPublic(r.Group("/api"))
+
 	protected := r.Group("/api")
 	protected.Use(middleware.JWTAuthMiddleware())
 	auth.RegisterProtected(protected)
