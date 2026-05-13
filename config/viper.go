@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -16,6 +17,14 @@ type Config struct {
 	JWT   JWTConfig   `mapstructure:"jwt"`
 	MySQL MySQLConfig `mapstructure:"mysql"`
 	Kimi  KimiConfig  `mapstructure:"kimi"`
+	Rag   RagConfig   `mapstructure:"rag"`
+}
+
+// RagConfig 评分接口的 RAG（向量检索锚点语料，失败时降级关键词）。
+type RagConfig struct {
+	Enabled        bool   `mapstructure:"enabled"`
+	TopK           int    `mapstructure:"top_k"`
+	EmbeddingModel string `mapstructure:"embedding_model"`
 }
 
 type KimiConfig struct {
@@ -95,6 +104,17 @@ func Load() (*Config, error) {
 	if u := strings.TrimSpace(os.Getenv("KIMI_BASE_URL")); u != "" {
 		cfg.Kimi.BaseURL = u
 	}
+	if e := strings.TrimSpace(os.Getenv("RAG_ENABLED")); e == "1" || strings.EqualFold(e, "true") || strings.EqualFold(e, "yes") {
+		cfg.Rag.Enabled = true
+	}
+	if k := strings.TrimSpace(os.Getenv("RAG_TOP_K")); k != "" {
+		if n, err := strconv.Atoi(k); err == nil && n > 0 {
+			cfg.Rag.TopK = n
+		}
+	}
+	if m := strings.TrimSpace(os.Getenv("RAG_EMBEDDING_MODEL")); m != "" {
+		cfg.Rag.EmbeddingModel = m
+	}
 
 	supplementKimiFromYAMLFile(&cfg, viper.ConfigFileUsed())
 
@@ -121,6 +141,11 @@ func supplementKimiFromYAMLFile(cfg *Config, configPath string) {
 			Model   string `yaml:"model"`
 			BaseURL string `yaml:"base_url"`
 		} `yaml:"kimi"`
+		Rag *struct {
+			Enabled        bool   `yaml:"enabled"`
+			TopK           int    `yaml:"top_k"`
+			EmbeddingModel string `yaml:"embedding_model"`
+		} `yaml:"rag"`
 	}
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		log.Printf("config: 解析 kimi 段失败: %v", err)
@@ -137,6 +162,15 @@ func supplementKimiFromYAMLFile(cfg *Config, configPath string) {
 	}
 	if strings.TrimSpace(cfg.Kimi.BaseURL) == "" && strings.TrimSpace(doc.Kimi.BaseURL) != "" {
 		cfg.Kimi.BaseURL = strings.TrimSpace(doc.Kimi.BaseURL)
+	}
+	if doc.Rag != nil {
+		cfg.Rag.Enabled = cfg.Rag.Enabled || doc.Rag.Enabled
+		if doc.Rag.TopK > 0 {
+			cfg.Rag.TopK = doc.Rag.TopK
+		}
+		if strings.TrimSpace(cfg.Rag.EmbeddingModel) == "" && strings.TrimSpace(doc.Rag.EmbeddingModel) != "" {
+			cfg.Rag.EmbeddingModel = strings.TrimSpace(doc.Rag.EmbeddingModel)
+		}
 	}
 }
 
